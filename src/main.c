@@ -123,12 +123,14 @@ main(void)
     seqNo++;
 #endif
 
+    iox_led_on(false, false, true, false);
 #ifdef DEBUG
     /* 
      * Send a message to indicate that it works
      */
     dbg_uart_puts(USART3, "Hello Embedded World!..\r\n"); 
 #endif
+    iox_led_on(false, false, true, true);
 
 #ifdef WIFI_EN
     wifi_on();

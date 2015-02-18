@@ -2,10 +2,9 @@
 
 SRCS = main.c uart.c iox.c timer.c utl.c \
 		dht22.c \
-		sn8200.c \
 		system_stm32f4xx.c \
 
-PROJ_NAME=wifi
+PROJ_NAME=monitor
 
 ###################################################
 

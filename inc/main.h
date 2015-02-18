@@ -19,17 +19,17 @@
 /*
  * Enable debugging info via uart to usb dongle.
  */
-// #define DEBUG
+#define DEBUG
 
 /* 
  * Enable temp/humidity sensor.
 */
-#define TH_SENSOR
+//#define TH_SENSOR
 
 /* 
  * Enable WiFi 
  */
-#define WIFI_EN
+//#define WIFI_EN
 
 /* Global Definitions -------------------------------------------------------*/
 #ifdef WIFI_EN
