@@ -11,11 +11,10 @@
 
 /* Includes -------------------------------------------------------------------*/
 #include "uart.h"
-#include "sn8200.h"
 
 /* Private typedefs -----------------------------------------------------------*/
 typedef struct {
-    uint8_t data[RX_BUFFER_SIZE];
+    char data[RX_BUFFER_SIZE];
     uint32_t tail;
     uint32_t head;
 } uart_buf_t;
@@ -28,73 +27,113 @@ static uint32_t uart_recv_cnt;
 extern void 
 uart_init(uint32_t baudrate)
 {
-    GPIO_InitTypeDef GPIO_InitStructure;
-    USART_InitTypeDef USART_InitStructure;
-    NVIC_InitTypeDef NVIC_InitStructure;
-
     uart_buf.tail = 0;
     uart_buf.head = 0;
     uart_recv_cnt = 0;
 
+    uint32_t reg;
+    uint32_t fraction;
+    uint32_t mantissa;
+    //callback = callback_fn;
+
+    uart_recv_cnt = 0;
+
     /* Enable GPIO clock */
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOBEN;
 
     /* Enable UART clock */
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+    RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
+
+    /* Connect PXx to USARTx_Tx/Rx*/
+    iox_alternate_func(iox_port_b, USART1_TX_PIN, USART1_AF);
+    iox_alternate_func(iox_port_b, USART1_RX_PIN, USART1_AF);
+
+    /* Configure USART Tx/Rx as alternate function  */
+    iox_configure_pin(iox_port_b, USART1_TX_PIN, iox_mode_af, iox_type_pp, 
+                        iox_speed_fast, iox_pupd_up);
+    iox_configure_pin(iox_port_b, USART1_RX_PIN, iox_mode_af, iox_type_pp,
+                        iox_speed_fast, iox_pupd_up);
+
+    /* 1 Stop bit, asynchronous mode */
+    USART1->CR2 = 0x00;
+    /* Rx interrupt enabled, Tx/Rx enabled */
+    USART1->CR1 = (USART_CR1_RXNEIE | USART_CR1_RE | USART_CR1_TE);
+    /* No hardware flow control, DMA enabled */
+    USART1->CR3 = 0x00;
+    /* Configure baudrate */
+    mantissa = ((25 * PCLK2) / (4 * baudrate));
+    reg = (mantissa / 100) << 4;
+    fraction = mantissa - (100 * (reg >> 4));
+    reg |= (((fraction * 16) + 50) / 100) & 0x0F;
+    USART1->BRR = reg;
+
+    utl_enable_irq(USART1_IRQn);
+
+    USART1->CR1 |= USART_CR1_UE;
+}
 
 
-    /* Connect PXx to USARTx_Tx*/
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_USART1);
+extern void 
+dbg_uart_init(uint32_t baudrate)
+{
+    uint32_t reg;
+    uint32_t fraction;
+    uint32_t mantissa;
+    //callback = callback_fn;
 
-    /* Connect PXx to USARTx_Rx*/
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_USART1);
+    uart_recv_cnt = 0;
 
-    /* Configure USART Tx as alternate function  */
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    /* Enable GPIO clock */
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
+    /* Enable UART clock */
+    RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
 
-    /* Configure USART Rx as alternate function  */
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
+    /* Connect PXx to USARTx_Tx/Rx*/
+    iox_alternate_func(iox_port_a, USART2_TX_PIN, USART1_AF);
+    iox_alternate_func(iox_port_a, USART2_RX_PIN, USART1_AF);
 
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
+    /* Configure USART Tx/Rx as alternate function  */
+    iox_configure_pin(iox_port_a, USART2_TX_PIN, iox_mode_af, iox_type_pp, 
+                        iox_speed_fast, iox_pupd_up);
+    iox_configure_pin(iox_port_a, USART2_RX_PIN, iox_mode_af, iox_type_pp,
+                        iox_speed_fast, iox_pupd_up);
 
-    /* Enable the USART1 Interrupt */
-    NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
+    /* 1 Stop bit, asynchronous mode */
+    USART2->CR2 = 0x00;
+    /* Tx/Rx enabled */
+    USART2->CR1 = USART_CR1_TE;
+    /* No hardware flow control, DMA enabled */
+    USART2->CR3 = 0x00;
+    /* Configure baudrate */
+    mantissa = ((25 * PCLK2) / (4 * baudrate));
+    reg = (mantissa / 100) << 4;
+    fraction = mantissa - (100 * (reg >> 4));
+    reg |= (((fraction * 16) + 50) / 100) & 0x0F;
+    USART2->BRR = reg;
 
-    /* USART configuration */
-    USART_InitStructure.USART_BaudRate = baudrate;
-    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-    USART_InitStructure.USART_StopBits = USART_StopBits_1;
-    USART_InitStructure.USART_Parity = USART_Parity_No;
-    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+    utl_enable_irq(USART2_IRQn);
 
-    USART_Init(USART1, &USART_InitStructure);
-
-    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-
-    /* Enable USART */
-    USART_Cmd(USART1, ENABLE);
+    USART2->CR1 |= USART_CR1_UE;
 }
 
 extern void 
-uart_send_data(unsigned char *buf, uint32_t len)
+dbg_uart_puts(const char *s) 
+{
+    while (*s) {
+        while ((USART2->SR & USART_SR_TC) == 0);
+        USART2->DR = (uint16_t) *s++;
+    }
+}
+
+extern void 
+uart_send_data(char *buf, uint32_t len)
 {
     uint32_t i;
 
     for (i = 0; i < len; i++) {
         USART1->DR = buf[i];
-        while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
+        while ((USART1->SR & USART_SR_TC) == 0);
     }
 }
 
@@ -104,10 +143,10 @@ uart_buffer_empty(void)
     return (uart_buf.head == uart_buf.tail);
 }
 
-extern uint8_t 
+extern char 
 uart_read_byte(void)
 {
-    uint8_t data = 0;
+    char data = ' ';
 
     if (uart_buf.head != uart_buf.tail) {
         data = uart_buf.data[uart_buf.tail];
@@ -119,8 +158,14 @@ uart_read_byte(void)
 
 void USART1_IRQHandler(void)
 {
-    if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) {
-        uart_buf.data[uart_buf.head] = USART_ReceiveData(USART1);
+    uint32_t sr;
+
+    sr = USART1->SR;
+
+    if (sr & USART_SR_RXNE) {
+        //callback(USART1->DR);
+        uart_buf.data[uart_buf.head] = USART1->DR;
+
         USART1->SR &= ~USART_SR_RXNE;
         uart_buf.head = (uart_buf.head + 1) % RX_BUFFER_SIZE;
         uart_recv_cnt++;
