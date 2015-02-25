@@ -29,12 +29,9 @@
 /* 
  * Enable WiFi 
  */
-//#define WIFI_EN
+#define WIFI_EN
 
 /* Global Definitions -------------------------------------------------------*/
-#ifdef WIFI_EN
-extern void handleRxSNIC(uint8_t *buf, uint16_t len);
-extern void handleRxWiFi(uint8_t *buf, uint16_t len);
-#endif
+
 
 #endif
