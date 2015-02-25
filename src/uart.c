@@ -24,7 +24,7 @@ typedef struct {
 static uart_buf_t uart_buf;
 static uint32_t uart_recv_cnt;
 
-/* Function Declarations ------------------------------------------------------*/
+/* Function Definitions -------------------------------------------------------*/
 extern void 
 uart_init(uint32_t baudrate)
 {

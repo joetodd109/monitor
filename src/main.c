@@ -95,7 +95,7 @@ static void snic_ip_config(void);
 static void http_get(const char *domain);
 #endif
 
-/* Function Declarations ------------------------------------------------------*/
+/* Function Definitions -------------------------------------------------------*/
 int 
 main(void)
 {

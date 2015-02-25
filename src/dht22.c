@@ -24,10 +24,10 @@
 /* Globals --------------------------------------------------------------------*/
 static uint8_t dht_bytes[6];
 
-/* Function Definitions -------------------------------------------------------*/
+/* Function Declarations-------------------------------------------------------*/
 static void dht22_start(void);
 
-/* Function Declarations ------------------------------------------------------*/
+/* Function Definitions -------------------------------------------------------*/
 /* 
  * Read values from DHT22
  * Returns success or failure

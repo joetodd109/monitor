@@ -23,14 +23,14 @@ static int32_t rx_frm_payload_index;
 static int32_t rx_frm_data_index;
 static unsigned char rx_frm_chksum;
 
-/* Function Definitions -------------------------------------------------------*/
+/* Function Declarations ------------------------------------------------------*/
 static unsigned char sn8200_tx_esc_payload(uint32_t payload_len, unsigned char *payload);
 static uint32_t sn8200_calc_payload_len(uint32_t payload_len, unsigned char *payload);
 static int8_t sn8200_process_rsp(unsigned char rx_ch);
 static bool sn8200_rx_frame_empty(void);
 static int32_t sn8200_handle_rx_frame(uint8_t commandId, uint16_t paramLength, uint8_t *params);
 
-/* Function Declarations ------------------------------------------------------*/
+/* Function Definitions -------------------------------------------------------*/
 static uint32_t
 sn8200_calc_payload_len(uint32_t payload_len, unsigned char *payload)
 {
