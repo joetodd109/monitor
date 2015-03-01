@@ -45,8 +45,8 @@ uart_init(uint32_t baudrate)
     RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
 
     /* Connect PXx to USARTx_Tx/Rx*/
-    iox_alternate_func(iox_port_b, USART1_TX_PIN, USART1_AF);
-    iox_alternate_func(iox_port_b, USART1_RX_PIN, USART1_AF);
+    iox_alternate_func(iox_port_a, USART1_TX_PIN, USART1_AF);
+    iox_alternate_func(iox_port_a, USART1_RX_PIN, USART1_AF);
 
     /* Configure USART Tx/Rx as alternate function  */
     iox_configure_pin(iox_port_b, USART1_TX_PIN, iox_mode_af, iox_type_pp, 
@@ -84,45 +84,45 @@ dbg_uart_init(uint32_t baudrate)
     uart_recv_cnt = 0;
 
     /* Enable GPIO clock */
-    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
 
     /* Enable UART clock */
-    RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
+    RCC->APB2ENR |= RCC_APB2ENR_USART6EN;
 
     /* Connect PXx to USARTx_Tx/Rx*/
-    iox_alternate_func(iox_port_a, USART2_TX_PIN, USART1_AF);
-    iox_alternate_func(iox_port_a, USART2_RX_PIN, USART1_AF);
+    iox_alternate_func(iox_port_c, USART6_TX_PIN, USART6_AF);
+    iox_alternate_func(iox_port_c, USART6_RX_PIN, USART6_AF);
 
     /* Configure USART Tx/Rx as alternate function  */
-    iox_configure_pin(iox_port_a, USART2_TX_PIN, iox_mode_af, iox_type_pp, 
+    iox_configure_pin(iox_port_c, USART6_TX_PIN, iox_mode_af, iox_type_pp, 
                         iox_speed_fast, iox_pupd_up);
-    iox_configure_pin(iox_port_a, USART2_RX_PIN, iox_mode_af, iox_type_pp,
+    iox_configure_pin(iox_port_c, USART6_RX_PIN, iox_mode_af, iox_type_pp,
                         iox_speed_fast, iox_pupd_up);
 
     /* 1 Stop bit, asynchronous mode */
-    USART2->CR2 = 0x00;
+    USART6->CR2 = 0x00;
     /* Tx/Rx enabled */
-    USART2->CR1 = USART_CR1_TE;
+    USART6->CR1 = USART_CR1_TE;
     /* No hardware flow control, DMA enabled */
-    USART2->CR3 = 0x00;
+    USART6->CR3 = 0x00;
     /* Configure baudrate */
     mantissa = ((25 * PCLK2) / (4 * baudrate));
     reg = (mantissa / 100) << 4;
     fraction = mantissa - (100 * (reg >> 4));
     reg |= (((fraction * 16) + 50) / 100) & 0x0F;
-    USART2->BRR = reg;
+    USART6->BRR = reg;
 
-    utl_enable_irq(USART2_IRQn);
+    utl_enable_irq(USART6_IRQn);
 
-    USART2->CR1 |= USART_CR1_UE;
+    USART6->CR1 |= USART_CR1_UE;
 }
 
 extern void 
 dbg_uart_puts(const char *s) 
 {
     while (*s) {
-        while ((USART2->SR & USART_SR_TC) == 0);
-        USART2->DR = (uint16_t) *s++;
+        while ((USART6->SR & USART_SR_TC) == 0);
+        USART6->DR = (uint16_t) *s++;
     }
 }
 

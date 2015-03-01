@@ -1,4 +1,4 @@
-/**
+/**make
   ******************************************************************************
   * @file    uart.h 
   * @author  Joe Todd
@@ -21,10 +21,11 @@
 #define USART1_TX_PIN   6u   /* PB6 */
 #define USART1_RX_PIN   7u   /* PB7 */
 
-#define USART2_TX_PIN   2u   /* PA2 */
-#define USART2_RX_PIN   3u   /* PA3 */
+#define USART6_TX_PIN   6u   /* PC6 */
+#define USART6_RX_PIN   7u   /* PC7 */
 
 #define USART1_AF       7u   /* AF7 */
+#define USART6_AF       8u   /* AF7 */
 
 #define PCLK2       16000000u
 

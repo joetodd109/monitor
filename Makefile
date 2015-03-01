@@ -1,7 +1,7 @@
 # put your *.o targets here, make should handle the rest!
 
 SRCS = main.c uart.c iox.c timer.c utl.c \
-		dht22.c wifi.c \
+		dht22.c wifi.c nrf24l01.c \
 		system_stm32f4xx.c \
 
 PROJ_NAME=monitor

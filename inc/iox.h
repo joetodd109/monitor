@@ -17,7 +17,6 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "stm32f4xx.h"
-#include "stm32f4xx_conf.h"
 
 
 /* Global Defines ----------------------------------------------------------- */
@@ -25,40 +24,40 @@
 /* 
  * Pin definitions 
  */
-#define PIN0    0u
-#define PIN1    1u
-#define PIN2    2u
-#define PIN3    3u
-#define PIN4    4u
-#define PIN5    5u
-#define PIN6    6u
-#define PIN7    7u
-#define PIN8    8u
-#define PIN9    9u
-#define PIN10   10u
-#define PIN11   11u
-#define PIN12   12u
-#define PIN13   13u
-#define PIN14   14u
-#define PIN15   15u
+#define PIN0    0
+#define PIN1    1
+#define PIN2    2
+#define PIN3    3
+#define PIN4    4
+#define PIN5    5
+#define PIN6    6
+#define PIN7    7
+#define PIN8    8
+#define PIN9    9
+#define PIN10   10
+#define PIN11   11
+#define PIN12   12
+#define PIN13   13
+#define PIN14   14
+#define PIN15   15
 
 /* Alternate function defintions */
-#define AF0     0u
-#define AF1     1u
-#define AF2     2u
-#define AF3     3u
-#define AF4     4u
-#define AF5     5u
-#define AF6     6u
-#define AF7     7u
-#define AF8     8u
-#define AF9     9u
-#define AF10    10u
-#define AF11    11u
-#define AF12    12u
-#define AF13    13u
-#define AF14    14u
-#define AF15    15u
+#define AF0     0
+#define AF1     1
+#define AF2     2
+#define AF3     3
+#define AF4     4
+#define AF5     5
+#define AF6     6
+#define AF7     7
+#define AF8     8
+#define AF9     9
+#define AF10    10
+#define AF11    11
+#define AF12    12
+#define AF13    13
+#define AF14    14
+#define AF15    15
 
 
 /**
@@ -66,7 +65,7 @@
  *
  * The compiler does a good job on this, so it is worth using a macro.
  */
-#define iox_get_pin(port, pin) \
+#define iox_get_pin_state(port, pin) \
     ((iox_gpios[port]->IDR & (1u << (pin))) ? true : false)
 
 /**
@@ -75,11 +74,9 @@
  * The compiler does a good job on this, so it is worth using a macro.
  * @notes:  upgrade to atomic write.
  */
-#define iox_set_pin(port, pin) \
-    (iox_gpios[port]->BSRRL = (1u << (pin)))
-
-#define iox_reset_pin(port, pin) \
-    (iox_gpios[port]->BSRRH = (1u << (pin)))
+#define iox_set_pin_state(port, pin, state) \
+    ((state) ? (iox_gpios[port]->ODR |= (1u << (pin))) \
+        : (iox_gpios[port]->ODR &= ~(1u << (pin))))
 
 typedef enum {
     iox_port_a,

@@ -22,16 +22,10 @@
 #ifdef TH_SENSOR
 #include "dht22.h"
 #endif
-#include "wifi.h"
+#include "nrf24l01.h"
 
 /* Private defines -----------------------------------------------------------*/
-#define DBGU_RX_BUFFER_SIZE 256
-
-#define ACK_REQUIRED        1
-#define ACK_NOT_REQUIRED    0
-
-/* Length of temp/humid data array */
-#define DATA_LEN 256
+#define DATA_LEN    256        /* Length of temp/humid data array */
 
 
 /* Private typedefs -----------------------------------------------------------*/
@@ -44,15 +38,11 @@ typedef enum {
 
 /* Private variables ----------------------------------------------------------*/
 #ifdef WIFI_EN
-static uint32_t timeout = 0;
-
-static const char *SSID;
-static const char *sec_key;
-static char http_rsp[4096];
-
-static char rxdata[4096];
+static uint8_t txdata[10] = {1,2,3,4,5,6,7,8,9,10};
 static uint32_t data_recv;
 #endif
+
+static uint8_t config_reg = 0;
 
 static conn_status_t conn_status;
 
@@ -73,17 +63,6 @@ static uint16_t current_index = 0;
 static void get_sensor(void);
 #endif
 
-<<<<<<< HEAD
-#ifdef WIFI_EN
-static void wifi_on(void);
-static void wifi_join(void);
-static void wifi_disconnect(void);
-static void wifi_join_network(void);
-static void snic_init(void);
-static void snic_ip_config(void);
-static void http_get(const char *domain);
-#endif
-
 /* Function Definitions -------------------------------------------------------*/
 int 
 main(void)
@@ -100,32 +79,37 @@ main(void)
     dbg_uart_init(115200);
 #endif
     timer_init();
+    nrf24l01_init();
     conn_status = disconnected;
 
 #ifdef WIFI_EN
-    uart_init(115200); 
+    //uart_init(115200); 
     data_recv = 0;
 #endif
 
-    iox_led_on(false, false, true, false);
+    nrf24l01_tx_mode();
+    iox_led_on(true, false, false, false);
 #ifdef DEBUG
     /* 
      * Send a message to indicate that it works
      */
     dbg_uart_puts("Hello Embedded World!..\r\n"); 
+    config_reg = nrf24l01_read_reg(0x20);
+    dbg_uart_puts("CONFIG = ");
+    dbg_uart_puts((const char*)config_reg);
+    dbg_uart_puts("\r\n");
 #endif
-    iox_led_on(false, false, true, true);
+    iox_led_on(true, true, false, false);
 
 #ifdef WIFI_EN
-    
-    bool success = wifi_test();
     timer_delay(1000000UL); // wait 1sec
-
-    iox_led_on(false, false, true, success);
+    iox_led_on(true, true, true, false);
 #endif
 
     while (1) {
         timer_delay(1000000);    //wait 1sec
+        iox_led_on(true, true, true, true);
+        nrf24l01_transmit(txdata);
 
 #ifdef TH_SENSOR
         if (sensor == 5) {
@@ -134,8 +118,9 @@ main(void)
         }
 #endif
 
-#ifndef WIFI_EN
-        timer_delay(4000000UL);
+#ifdef WIFI_EN
+        timer_delay(4000000);
+        iox_led_on(true, true, true, false);
 #endif
 #ifdef TH_SENSOR
         sensor++;
