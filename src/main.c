@@ -38,11 +38,14 @@ typedef enum {
 
 /* Private variables ----------------------------------------------------------*/
 #ifdef WIFI_EN
-static uint8_t txdata[10] = {1,2,3,4,5,6,7,8,9,10};
+static uint8_t txdata[32] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,
+                                20,21,22,23,24,25,26,27,28,29,30,31,32};
+static uint8_t rxdata[32];
 static uint32_t data_recv;
 #endif
 
-static uint8_t config_reg = 0;
+static uint8_t status = 0;
+static uint8_t flag = 0;
 
 static conn_status_t conn_status;
 
@@ -55,6 +58,12 @@ static uint32_t sensor = 0;
  * move them in memory.
  */
 static uint16_t current_index = 0;
+#endif
+
+#ifdef DEBUG
+static void print_byte(uint8_t byte);
+static void print_regs(void);
+static void print_status(void);
 #endif
 
 /* Private functions ----------------------------------------------------------*/
@@ -87,28 +96,18 @@ main(void)
     data_recv = 0;
 #endif
 
-    nrf24l01_tx_mode();
     iox_led_on(true, false, false, false);
-#ifdef DEBUG
-    /* 
-     * Send a message to indicate that it works
-     */
-    dbg_uart_puts("Hello Embedded World!..\r\n"); 
-    config_reg = nrf24l01_read_reg(0x20);
-    dbg_uart_puts("CONFIG = ");
-    dbg_uart_puts((const char*)config_reg);
-    dbg_uart_puts("\r\n");
-#endif
-    iox_led_on(true, true, false, false);
+    nrf24l01_tx_mode();
+    timer_delay(150000UL); /* wait 150ms */
 
-#ifdef WIFI_EN
-    timer_delay(1000000UL); // wait 1sec
-    iox_led_on(true, true, true, false);
+#ifdef DEBUG
+    dbg_uart_puts("\r\nnRF24L01 Registers\r\n\r\n"); 
+    print_regs();
 #endif
 
     while (1) {
-        timer_delay(1000000);    //wait 1sec
-        iox_led_on(true, true, true, true);
+        timer_delay(1000000);    /* wait 1sec */
+        iox_led_on(false, false, false, true);
         nrf24l01_transmit(txdata);
 
 #ifdef TH_SENSOR
@@ -116,14 +115,12 @@ main(void)
             get_sensor();
             sensor = 0;
         }
+        sensor++;
 #endif
 
 #ifdef WIFI_EN
-        timer_delay(4000000);
-        iox_led_on(true, true, true, false);
-#endif
-#ifdef TH_SENSOR
-        sensor++;
+        timer_delay(4000000);       /* wait 4sec */
+        iox_led_on(false, false, false, false);
 #endif
     }
 
@@ -153,3 +150,81 @@ get_sensor(void)
 }
 #endif
 
+#ifdef DEBUG
+static void
+print_byte(uint8_t byte)
+{
+    int32_t i;
+    uint8_t mask, bit;
+
+    dbg_uart_puts("0");
+    dbg_uart_puts("b");
+    for (i = 7; i >= 0; i--) {
+        mask = 1u << i;
+        bit = mask & byte;
+        if (bit == 0) {
+            dbg_uart_puts("0");
+        }
+        else {
+            dbg_uart_puts("1");
+        }
+    }
+    dbg_uart_puts("\r\n");
+}
+
+static void
+print_regs(void)
+{
+    uint8_t i, reg;
+    uint8_t addr[5];
+
+    reg = nrf24l01_read_reg(CONFIG);
+    dbg_uart_puts("CONFIG = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(EN_AA);
+    dbg_uart_puts("EN_AA = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(EN_RXADDR);
+    dbg_uart_puts("EN_RXADDR = ");
+    print_byte(reg);    
+    reg = nrf24l01_read_reg(SETUP_AW);
+    dbg_uart_puts("SETUP_AW = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(SETUP_RETR);
+    dbg_uart_puts("SETUP_RETR = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(RF_CH);
+    dbg_uart_puts("RF_CH = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(RF_SETUP);
+    dbg_uart_puts("RF_SETUP = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(RX_PW_P0);
+    dbg_uart_puts("RX_PW_P0 = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(RX_PW_P1);
+    dbg_uart_puts("RX_PW_P1 = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(FEATURE);
+    dbg_uart_puts("FEATURE = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(DYNPD);
+    dbg_uart_puts("DYNPD = ");
+    print_byte(reg);
+    nrf24l01_spi_read(TX_ADDR, addr, 5);
+    dbg_uart_puts("TXADDR = ");
+    for (i = 0; i < 5; i++) {
+        print_byte(addr[i]);
+    }
+}
+
+static void
+print_status(void)
+{
+    uint8_t reg;
+
+    reg = nrf24l01_read_reg(STATUS);
+    dbg_uart_puts("STATUS = ");
+    print_byte(reg);
+}
+#endif
