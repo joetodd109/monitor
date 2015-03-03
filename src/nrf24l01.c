@@ -13,8 +13,6 @@
 #include "nrf24l01.h"
 #include "uart.h"
 
-#include "stm32f4xx_conf.h"
-
 /* Private defines -----------------------------------------------------------*/
 
 #define RX_PLOAD_WIDTH  32u
@@ -71,7 +69,7 @@ nrf24l01_init(void)
      * Configure CE and CS GPIO's.
      */
     iox_configure_pin(iox_port_a, GPIO_CE_PIN, iox_mode_out,
-                        iox_type_pp, iox_speed_fast, iox_pupd_up);
+                        iox_type_pp, iox_speed_fast, iox_pupd_down);
     iox_configure_pin(iox_port_a, GPIO_CS_PIN, iox_mode_out,
                         iox_type_pp, iox_speed_fast, iox_pupd_up);
 
@@ -88,34 +86,6 @@ nrf24l01_init(void)
     SPI1->CR1 |= SPI_CR1_SPE;
 }
 
-static void
-print_byte(uint8_t byte)
-{
-    int32_t i;
-    uint8_t mask, bit;
-
-    dbg_uart_puts("0");
-    dbg_uart_puts("b");
-    for (i = 7; i >= 0; i--) {
-        mask = 1u << i;
-        bit = mask & byte;
-        if (bit == 0) {
-            dbg_uart_puts("0");
-        }
-        else {
-            dbg_uart_puts("1");
-        }
-    }
-    dbg_uart_puts("\r\n");
-}
-
-static void
-print_status(uint8_t reg)
-{
-    dbg_uart_puts("STATUS = ");
-    print_byte(reg);
-}
-
 extern void
 nrf24l01_tx_mode(void)
 {
@@ -127,7 +97,7 @@ nrf24l01_tx_mode(void)
     nrf24l01_write_reg(WRITE_nRF_REG + SETUP_AW, 0x03);  /* 5 bytes address width */
 	nrf24l01_write_reg(WRITE_nRF_REG + SETUP_RETR, 0xFF); /* Auto Retransmit Delay: 4ms, Up to 15 Retransmissions */
 	nrf24l01_write_reg(WRITE_nRF_REG + RF_CH, 0x60); /* Set channel */
-	nrf24l01_write_reg(WRITE_nRF_REG + RF_SETUP, 0x27); /* Setup power 0dbm, rate 250kbps */
+	nrf24l01_write_reg(WRITE_nRF_REG + RF_SETUP, 0x20); /* Setup power -18dbm, rate 250kbps */
     nrf24l01_write_reg(WRITE_nRF_REG + RX_PW_P0, 0x08); /* Set Rx pipe 0 to 8 bytes */
     nrf24l01_write_reg(WRITE_nRF_REG + RX_PW_P1, 0x08); /* Set Rx pipe 1 to 8 bytes */
     nrf24l01_spi_write(WRITE_nRF_REG + TX_ADDR, tx_addr, ADR_WIDTH); /* write address into tx_addr */
@@ -137,7 +107,10 @@ nrf24l01_tx_mode(void)
     nrf24l01_write_reg(WRITE_nRF_REG + DYNPD, 0x00); /* Enable dynamic payload length  */
 }
 
-extern void
+/* 
+ * Transmit data, max 32 bytes.
+ */
+extern bool
 nrf24l01_transmit(uint8_t *tx_buf)
 {
     uint8_t status;
@@ -150,37 +123,39 @@ nrf24l01_transmit(uint8_t *tx_buf)
 
     /* Write data to FIFO */
 	status = nrf24l01_spi_write(WR_TX_PLOAD, tx_buf, 8);
-    print_status(status);
 
-	//nrf24l01_write_reg(WRITE_nRF_REG + STATUS, 0x20); /* Clear TX FIFO data sent status bit */
+	nrf24l01_write_reg(WRITE_nRF_REG + STATUS, 0x20); /* Clear TX FIFO data sent status bit */
 	timer_delay(200);      /* Wait 130us settling time */
-    status = nrf24l01_read_reg(STATUS);
-    print_status(status);
 
     iox_set_pin_state(iox_port_a, GPIO_CE_PIN, true);
 	timer_delay(20);       /* Pulse CE for at least 10us */
 	iox_set_pin_state(iox_port_a, GPIO_CE_PIN, false);
-    status = nrf24l01_read_reg(STATUS);
-    print_status(status);
-    dbg_uart_puts("\r\n");
+    timer_delay(1000);     /* Wait until transmission complete */
+
+    if ((nrf24l01_read_reg(STATUS) & 0x20)) {
+        return true;
+    }
+    return false;
 }
 
-extern uint8_t
+/* 
+ * Receive data, max 32 bytes.
+ */
+extern bool
 nrf24l01_receive(uint8_t *rx_buf)
 {
-	uint8_t flag = 0;
     uint8_t status;
 
 	status = nrf24l01_read_reg(STATUS);
+    /* Write 1 to clear bit */
+    nrf24l01_write_reg(WRITE_nRF_REG + STATUS, status);
 
 	if (status & 0x40) /* Data Ready RX FIFO interrupt */
 	{
         nrf24l01_spi_read(RD_RX_PLOAD, rx_buf, 8);
-        flag = 1;
+        return true;
 	}
-    /* Write 1 to clear bit */
-	nrf24l01_write_reg(WRITE_nRF_REG + STATUS, status);
-	return flag;
+    return false;
 }
 
 /*
@@ -276,4 +251,74 @@ nrf24l01_send_byte(uint8_t data)
     while ((SPI1->SR & SPI_SR_RXNE) == 0);
     /* Return byte from SPI */
     return SPI1->DR;
+}
+
+
+
+extern void
+print_byte(uint8_t byte)
+{
+    int32_t i;
+    uint8_t mask, bit;
+
+    dbg_uart_puts("0");
+    dbg_uart_puts("b");
+    for (i = 7; i >= 0; i--) {
+        mask = 1u << i;
+        bit = mask & byte;
+        if (bit == 0) {
+            dbg_uart_puts("0");
+        }
+        else {
+            dbg_uart_puts("1");
+        }
+    }
+    dbg_uart_puts("\r\n");
+}
+
+extern void
+print_status(uint8_t reg)
+{
+    dbg_uart_puts("STATUS = ");
+    print_byte(reg);
+}
+
+extern void
+print_regs(void)
+{
+    uint8_t reg;
+
+    reg = nrf24l01_read_reg(CONFIG);
+    dbg_uart_puts("CONFIG = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(EN_AA);
+    dbg_uart_puts("EN_AA = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(EN_RXADDR);
+    dbg_uart_puts("EN_RXADDR = ");
+    print_byte(reg);    
+    reg = nrf24l01_read_reg(SETUP_AW);
+    dbg_uart_puts("SETUP_AW = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(SETUP_RETR);
+    dbg_uart_puts("SETUP_RETR = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(RF_CH);
+    dbg_uart_puts("RF_CH = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(RF_SETUP);
+    dbg_uart_puts("RF_SETUP = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(RX_PW_P0);
+    dbg_uart_puts("RX_PW_P0 = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(RX_PW_P1);
+    dbg_uart_puts("RX_PW_P1 = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(FEATURE);
+    dbg_uart_puts("FEATURE = ");
+    print_byte(reg);
+    reg = nrf24l01_read_reg(DYNPD);
+    dbg_uart_puts("DYNPD = ");
+    print_byte(reg);
 }

@@ -67,11 +67,15 @@
 /* Function Declarations -----------------------------------------------------*/
 extern void nrf24l01_init(void);
 extern void nrf24l01_tx_mode(void);
-extern void nrf24l01_transmit(uint8_t *tx_buf);
-extern uint8_t nrf24l01_receive(uint8_t *rx_buf);
+extern bool nrf24l01_transmit(uint8_t *tx_buf);
+extern bool nrf24l01_receive(uint8_t *rx_buf);
 extern uint8_t nrf24l01_send_byte(uint8_t data);
 extern uint8_t nrf24l01_read_reg(uint8_t reg);
 extern uint8_t nrf24l01_write_reg(uint8_t reg, uint8_t value);
 extern uint8_t nrf24l01_spi_read(uint8_t reg, uint8_t *buf, uint8_t len);
 
+/* for debugging */
+extern void print_status(uint8_t reg);
+extern void print_byte(uint8_t byte);
+extern void print_regs(void);
 #endif
