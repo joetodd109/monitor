@@ -15,16 +15,22 @@
  * Enable an interrupt.
  */
 extern void
-utl_enable_irq(uint8_t irq)
+utl_enable_irq(IRQn_Type irq)
 {
-    NVIC->ISER[0] = 1 << (irq & 0x1F);
+	uint32_t i;
+
+	i = irq / 32;
+	NVIC->ISER[i] = 1 << (irq - (i * 32));
 }
 
 /**
  * Disable an interrupt.
  */
 extern void
-utl_disable_irq(uint8_t irq)
+utl_disable_irq(IRQn_Type irq)
 {
-    NVIC->ICER[0] = 1 << (irq & 0x1F);
+	uint32_t i;
+
+	i = irq / 32;
+	NVIC->ICER[i] = 1 << (irq - (i * 32));
 }

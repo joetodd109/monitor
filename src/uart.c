@@ -126,6 +126,27 @@ dbg_uart_puts(const char *s)
     }
 }
 
+extern void
+print_byte(uint8_t byte)
+{
+    int32_t i;
+    uint8_t mask, bit;
+
+    dbg_uart_puts("0");
+    dbg_uart_puts("b");
+    for (i = 7; i >= 0; i--) {
+        mask = 1u << i;
+        bit = mask & byte;
+        if (bit == 0) {
+            dbg_uart_puts("0");
+        }
+        else {
+            dbg_uart_puts("1");
+        }
+    }
+    dbg_uart_puts("\r\n");
+}
+
 extern void 
 uart_send_data(char *buf, uint32_t len)
 {

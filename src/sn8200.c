@@ -5,6 +5,7 @@
  * @version
  * @date    June 2014
  * @brief   WiFi Automation
+ *          Murata SN8200 Discover WiFi
  *
   ******************************************************************************/
 

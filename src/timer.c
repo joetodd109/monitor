@@ -9,15 +9,11 @@
   ******************************************************************************/
 
 /* Includes -------------------------------------------------------------------*/
-#include "stm32f4xx_conf.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include "stm32f4xx.h"
 #include "utl.h"
 #include "timer.h"
 
-static __IO uint32_t ms_count = 0;
+static volatile uint32_t ms_count = 0;
 
 /* 
  * SYSCLK = 16MHz
@@ -51,7 +47,7 @@ timer_get(void)
 }
 
 extern void 
-timer_delay(__IO uint32_t time) {
+timer_delay(uint32_t time) {
     uint32_t start;
     uint32_t timer;
     uint32_t end;

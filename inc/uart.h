@@ -14,7 +14,6 @@
 #define UART_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx_conf.h"
 #include "iox.h"
 #include "utl.h"
 
@@ -40,5 +39,6 @@ extern void dbg_uart_puts(const char *s);
 extern void uart_send_data(char *buf, uint32_t len);
 extern bool uart_buffer_empty(void);
 extern char uart_read_byte(void);
+extern void print_byte(uint8_t byte);
 
 #endif

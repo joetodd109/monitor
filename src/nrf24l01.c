@@ -4,6 +4,9 @@
  * @version
  * @date    February 2015
  * @brief   Wireless Temp/Humidity Monitor
+ *          Use nRF24L01 to transmit data to another nRF24L01 RPi gateway.
+ *          This is the best solution so far as mongolab requires secure 
+ *          https communication.
  *
   ******************************************************************************/
 
@@ -31,7 +34,6 @@
 
 #define SPI1_AF5        5u
 
-//static uint8_t tx_addr[ADR_WIDTH]= {0xE7,0xE7,0xE7,0xE7,0xE7};
 static uint8_t rx_addr1[ADR_WIDTH]= {0xE7,0xE7,0xE7,0xE7,0xE7};
 static uint8_t tx_addr[ADR_WIDTH]= {0xC2,0xC2,0xC2,0xC2,0xC2};
 static uint8_t rx_addr[ADR_WIDTH]= {0xC2,0xC2,0xC2,0xC2,0xC2};
@@ -97,21 +99,23 @@ nrf24l01_tx_mode(void)
     nrf24l01_write_reg(WRITE_nRF_REG + SETUP_AW, 0x03);  /* 5 bytes address width */
 	nrf24l01_write_reg(WRITE_nRF_REG + SETUP_RETR, 0xFF); /* Auto Retransmit Delay: 4ms, Up to 15 Retransmissions */
 	nrf24l01_write_reg(WRITE_nRF_REG + RF_CH, 0x60); /* Set channel */
-	nrf24l01_write_reg(WRITE_nRF_REG + RF_SETUP, 0x20); /* Setup power -18dbm, rate 250kbps */
+	nrf24l01_write_reg(WRITE_nRF_REG + RF_SETUP, 0x24); /* Setup power -6dbm, rate 250kbps */
     nrf24l01_write_reg(WRITE_nRF_REG + RX_PW_P0, 0x08); /* Set Rx pipe 0 to 8 bytes */
     nrf24l01_write_reg(WRITE_nRF_REG + RX_PW_P1, 0x08); /* Set Rx pipe 1 to 8 bytes */
     nrf24l01_spi_write(WRITE_nRF_REG + TX_ADDR, tx_addr, ADR_WIDTH); /* write address into tx_addr */
 	nrf24l01_spi_write(WRITE_nRF_REG + RX_ADDR_P0, rx_addr, ADR_WIDTH); /* write address into rx_addr_p0 */
     nrf24l01_spi_write(WRITE_nRF_REG + RX_ADDR_P1, rx_addr1, ADR_WIDTH); /* write address into rx_addr_p1 */
-    nrf24l01_write_reg(WRITE_nRF_REG + FEATURE, 0x01); /* Enable payload with NO ACK, and no dynamic payload len */
-    nrf24l01_write_reg(WRITE_nRF_REG + DYNPD, 0x00); /* Enable dynamic payload length  */
+    nrf24l01_write_reg(WRITE_nRF_REG + FEATURE, 0x06); /* Enable payload with/without ACK, and dynamic payload len */
+    nrf24l01_write_reg(WRITE_nRF_REG + DYNPD, 0x3F); /* Enable dynamic payload length  */
+    
+    timer_delay(150000UL); /* wait 150ms */
 }
 
 /* 
  * Transmit data, max 32 bytes.
  */
 extern bool
-nrf24l01_transmit(uint8_t *tx_buf)
+nrf24l01_transmit(uint8_t *tx_buf, uint8_t len)
 {
     uint8_t status;
 
@@ -122,7 +126,7 @@ nrf24l01_transmit(uint8_t *tx_buf)
 	nrf24l01_write_reg(FLUSH_TX, 0x00);               /* Flush TX FIFO */
 
     /* Write data to FIFO */
-	status = nrf24l01_spi_write(WR_TX_PLOAD, tx_buf, 8);
+	status = nrf24l01_spi_write(WR_TX_PLOAD, tx_buf, len);
 
 	nrf24l01_write_reg(WRITE_nRF_REG + STATUS, 0x20); /* Clear TX FIFO data sent status bit */
 	timer_delay(200);      /* Wait 130us settling time */
@@ -130,7 +134,7 @@ nrf24l01_transmit(uint8_t *tx_buf)
     iox_set_pin_state(iox_port_a, GPIO_CE_PIN, true);
 	timer_delay(20);       /* Pulse CE for at least 10us */
 	iox_set_pin_state(iox_port_a, GPIO_CE_PIN, false);
-    timer_delay(1000);     /* Wait until transmission complete */
+    timer_delay(5000);     /* Wait until transmission complete */
 
     if ((nrf24l01_read_reg(STATUS) & 0x20)) {
         return true;
@@ -152,7 +156,7 @@ nrf24l01_receive(uint8_t *rx_buf)
 
 	if (status & 0x40) /* Data Ready RX FIFO interrupt */
 	{
-        nrf24l01_spi_read(RD_RX_PLOAD, rx_buf, 8);
+        nrf24l01_spi_read(RD_RX_PLOAD, rx_buf, RX_PLOAD_WIDTH);
         return true;
 	}
     return false;
@@ -251,29 +255,6 @@ nrf24l01_send_byte(uint8_t data)
     while ((SPI1->SR & SPI_SR_RXNE) == 0);
     /* Return byte from SPI */
     return SPI1->DR;
-}
-
-
-
-extern void
-print_byte(uint8_t byte)
-{
-    int32_t i;
-    uint8_t mask, bit;
-
-    dbg_uart_puts("0");
-    dbg_uart_puts("b");
-    for (i = 7; i >= 0; i--) {
-        mask = 1u << i;
-        bit = mask & byte;
-        if (bit == 0) {
-            dbg_uart_puts("0");
-        }
-        else {
-            dbg_uart_puts("1");
-        }
-    }
-    dbg_uart_puts("\r\n");
 }
 
 extern void

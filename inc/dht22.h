@@ -13,12 +13,20 @@
 #ifndef __DHT22_H__
 #define __DHT22_H__
 
-#include <inttypes.h>
+#include <stdbool.h>
+#include <stdint.h>
+
+
+/* #define DEBUG    */
 
 extern uint16_t dht22_get_humidity(void);
 extern int16_t dht22_get_temp(void);
-extern uint8_t dht22_read(void);
-extern uint8_t dht22_check_checksum(void);
+extern bool dht22_read(void);
+extern bool dht22_check_checksum(void);
 extern uint8_t dht22_get_checksum(void);
+
+#ifdef DEBUG
+extern void dht22_print(void);
+#endif
 
 #endif
